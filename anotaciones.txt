@@ -1,0 +1,3 @@
+Formatear fechas mensajes
+añadir separador de día mientras hablas en javascript
+no marcar como leido si la pestaña no está abierta
