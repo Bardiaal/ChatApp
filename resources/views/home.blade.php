@@ -44,7 +44,10 @@
             trigger: 'hover'
         }); 
     })
-
+    /*
+    query:{
+        userid: "{{Auth::user()->socket_id}}",
+    */
     var socket = io('192.168.0.23:3000', {
         transports : ['websocket'], 
         query:"userid={{Auth::id()}}"
