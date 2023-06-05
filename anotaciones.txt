@@ -1,3 +1,4 @@
-Formatear fechas mensajes
-añadir separador de día mientras hablas en javascript
-no marcar como leido si la pestaña no está abierta
+Fechas barra de arriba
+notificaciones de escritorio
+Sonido de notificacion
+Conexión cortada arreglar popup

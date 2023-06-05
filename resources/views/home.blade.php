@@ -35,15 +35,37 @@
 
     var myId = '{{Auth::id()}}';
     var chatId = '';
+    var toUserId = '';
     var sendForm = document.getElementById('send-form');
     var inputSend = document.getElementById('input-text');
     var manageMessageComponent = document.getElementById('manage-message');
+    var notificationSound = new Audio('{{ asset("sounds/notification.mp3") }}');
 
     $(function () {
         $('#manage-message').tooltip({
             trigger: 'hover'
-        }); 
+        });
     })
+
+    window.onload = function () {
+        if (!window.Notification) {
+            console.log('Browser does not support notifications.');
+        } else {
+            if (Notification.permission === 'granted') {
+                console.log('Notifications permission granted previously.');
+            } else {
+                Notification.requestPermission().then(function(p) {
+                if(p === 'granted') {
+                    console.log('Notifications permission granted.');
+                } else {
+                    console.log('User blocked notifications.');
+                }
+                }).catch(function(err) {
+                    console.error(err);
+                });
+            }
+        }
+    }
     /*
     query:{
         userid: "{{Auth::user()->socket_id}}",
@@ -81,16 +103,41 @@
         pendingMessages[msg.chat_id]['last_message'] = msg.message;
         if(chatId == msg.chat_id) {
             document.getElementById('last-message-' + msg.chat_id).innerText = msg.message;
-            Livewire.emit('mark-as-read', msg.chat_id, msg.from, msg.message_id);
+            if(document.visibilityState === 'visible') {
+                Livewire.emit('mark-as-read', msg.chat_id, msg.from, msg.message_id);
+            }
             if(document.getElementById('initial-chat-message')) document.getElementById('initial-chat-message').remove();
             var formattedDate = new Date(msg.date);
             createPrivateMessageBubble(msg.message_id, msg.message, (formattedDate.getHours() < 10 ? '0':'') + formattedDate.getHours() + ':' + (formattedDate.getMinutes() < 10 ? '0':'') + formattedDate.getMinutes(), 'visitor');
         } else {
+            //notificationSound.play();
             pendingMessages[msg.chat_id]['pending_messages'] += 1 
             var pendingCounter = pendingMessages[msg.chat_id]['pending_messages'];
             pendingMarkAsRead[msg.chat_id].push(msg.message_id);
             document.getElementById('last-message-' + msg.chat_id).innerHTML = '<span id="badge-' + msg.chat_id + '" class="badge badge-pending">' + pendingCounter + '</span> ' + msg.message;
             $('#last-message-' + msg.chat_id).addClass('message-not-read');
+        }
+        if(document.visibilityState != 'visible') {
+            pendingMessages[msg.chat_id]['pending_messages'] += 1 
+            var pendingCounter = pendingMessages[msg.chat_id]['pending_messages'];
+            pendingMarkAsRead[msg.chat_id].push(msg.message_id);
+            document.getElementById('last-message-' + msg.chat_id).innerHTML = '<span id="badge-' + msg.chat_id + '" class="badge badge-pending">' + pendingCounter + '</span> ' + msg.message;
+            $('#last-message-' + msg.chat_id).addClass('message-not-read');
+            if (Notification.permission === 'granted') {
+                new Notification(document.getElementById('name-' + msg.chat_id).dataset.name, {
+                    body: msg.message/*,
+                    icon: 'https://bit.ly/2DYqRrh',*/
+                });
+            }
+        }
+    });
+
+    document.addEventListener('visibilitychange', function() {
+        console.log('Document state: ' + document.visibilityState);
+        if (document.visibilityState === 'visible') {
+            console.log('Marking msgs as viewed');
+            if(chatId in pendingMarkAsRead && pendingMarkAsRead[chatId].length != 0) Livewire.emit('mark-as-read-multiple', chatId, toUserId, JSON.stringify(pendingMarkAsRead[chatId]))
+            if(document.getElementById('badge-' + chatId)) document.getElementById('badge-' + chatId).remove();
         }
     });
 
@@ -118,12 +165,13 @@
         }
     });
 
-    function loadChatMessages(id) {
+    function loadChatMessages(id, toId) {
         if(chatId == id) return;
         inputSend.disabled = true;
         if (chatId != '') $('#conversation-' + chatId).removeClass('selected-conversation');
         else $('.chat-input-group').fadeIn();
         chatId = id;
+        toUserId = toId;
         document.getElementById('user-writing').innerHTML = '';
         $('#conversation-' + id).addClass('selected-conversation');
         document.getElementById('user-name-chat').innerText = document.getElementById('name-' + id).dataset.name;
@@ -200,7 +248,7 @@
     Livewire.on('messages-loaded', function(chatId, toId) {
         document.getElementById('chat-messages-box').scrollTop = document.getElementById('chat-messages-box').scrollHeight;
         socket.emit('get-user-status', toId);
-        if(chatId in pendingMarkAsRead && pendingMarkAsRead[chatId].length != 0) Livewire.emit('mark-as-read-multiple', chatId, toId, JSON.stringify(pendingMarkAsRead[chatId]))
+        if(chatId in pendingMarkAsRead && pendingMarkAsRead[chatId].length != 0) Livewire.emit('mark-as-read-multiple', chatId, toId, JSON.stringify(pendingMarkAsRead[chatId]));
         inputSend.disabled = false;
     });
 

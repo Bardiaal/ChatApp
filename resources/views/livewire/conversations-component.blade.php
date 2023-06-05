@@ -21,11 +21,11 @@
     <div class="conversations-chats">
         @if($selectedChatType == 'private')
             @foreach($chats as $chat)
-            <div id="conversation-{{$chat->id}}" onclick="loadChatMessages('{{$chat->id}}')" class="conversation-chat">
-                <?php 
-                    $nameUser = ($chat->user_1 == Auth::id()) ? $chat->username_2 : $chat->username_1;
-                    $toId = ($chat->user_1 == Auth::id()) ? $chat->user_2 : $chat->user_1;
-                ?>
+            <?php 
+                $nameUser = ($chat->user_1 == Auth::id()) ? $chat->username_2 : $chat->username_1;
+                $toId = ($chat->user_1 == Auth::id()) ? $chat->user_2 : $chat->user_1;
+            ?>
+            <div id="conversation-{{$chat->id}}" onclick="loadChatMessages('{{$chat->id}}', '{{$toId}}')" class="conversation-chat">
                 <img id="img-{{$chat->id}}" class="conversation-img" src="https://eu.ui-avatars.com/api/?name={{ str_replace(' ', '+', $nameUser) }}" alt="">
                 <div class="conversation-name">
                     <div class="conversation-name-usr">
